@@ -1,0 +1,78 @@
+[
+  {
+    "id": "file-1762716288374-wyt9v05y2",
+    "filename": "1762716288371-.claude.json.backup",
+    "originalName": ".claude.json.backup",
+    "size": 39310,
+    "uploaderId": "unknown",
+    "uploaderName": "Unknown",
+    "sharedWith": [],
+    "isPublic": false,
+    "uploadedAt": 1762716288374,
+    "path": "/uploads/1762716288371-.claude.json.backup"
+  },
+  {
+    "id": "file-1762716371954-5l5hy3rwm",
+    "filename": "1762716371953-.claude.json.backup",
+    "originalName": ".claude.json.backup",
+    "size": 39310,
+    "uploaderId": "acc-1762716210769-cg82z8d9a",
+    "uploaderName": "wolve",
+    "sharedWith": [],
+    "isPublic": true,
+    "uploadedAt": 1762716371954,
+    "path": "/shared_files/1762716371953-.claude.json.backup"
+  },
+  {
+    "id": "file-1762716833991-hy1yn8p23",
+    "filename": "1762716833988-.gitconfig",
+    "originalName": ".gitconfig",
+    "size": 286,
+    "uploaderId": "acc-1762716210769-cg82z8d9a",
+    "uploaderName": "wolve",
+    "sharedWith": [
+      "acc-1762709791512-n6axj0ino"
+    ],
+    "isPublic": false,
+    "uploadedAt": 1762716833991,
+    "path": "/uploads/1762716833988-.gitconfig"
+  },
+  {
+    "id": "file-1762718492826-9fgiro8c3",
+    "filename": "1762718492823-.claude.json.backup",
+    "originalName": ".claude.json.backup",
+    "size": 39310,
+    "uploaderId": "unknown",
+    "uploaderName": "Unknown",
+    "sharedWith": [],
+    "isPublic": false,
+    "uploadedAt": 1762718492826,
+    "path": "/uploads/1762718492823-.claude.json.backup"
+  },
+  {
+    "id": "file-1762721605358-ncyou15wp",
+    "filename": "1762721605356-diagnostic_app.html",
+    "originalName": "diagnostic_app.html",
+    "size": 12988,
+    "uploaderId": "acc-1762709824713-bjdg5z6tm",
+    "uploaderName": "nafiX",
+    "sharedWith": [],
+    "isPublic": true,
+    "uploadedAt": 1762721605358,
+    "path": "/uploads/call-acc-1762709824713-bjdg5z6tm-acc-1762709791512-n6axj0ino-1762721579722/1762721605356-diagnostic_app.html",
+    "roomId": "call-acc-1762709824713-bjdg5z6tm-acc-1762709791512-n6axj0ino-1762721579722"
+  },
+  {
+    "id": "file-1762722685156-3b62s10rx",
+    "filename": "1762722685155-diagnostic_app.html",
+    "originalName": "diagnostic_app.html",
+    "size": 12988,
+    "uploaderId": "acc-1762709824713-bjdg5z6tm",
+    "uploaderName": "nafiX",
+    "sharedWith": [],
+    "isPublic": true,
+    "uploadedAt": 1762722685156,
+    "path": "/uploads/call-acc-1762709791512-n6axj0ino-acc-1762709824713-bjdg5z6tm-1762722623050/1762722685155-diagnostic_app.html",
+    "roomId": "call-acc-1762709791512-n6axj0ino-acc-1762709824713-bjdg5z6tm-1762722623050"
+  }
+]
