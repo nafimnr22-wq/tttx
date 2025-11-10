@@ -50,27 +50,25 @@ export function MeetingRoom({ account, roomId, onLeave }: MeetingRoomProps) {
         onLeave();
     };
 
-    // Start video when room loads
+    // Start video when peer ID is ready
     useEffect(() => {
-        if (localPeerId) {
-            console.log('🎬 Starting video for room:', roomId);
-            startVideo();
+        if (!localPeerId) return;
 
-            // Save user info to server
-            fetch(`${API_URL}/api/users`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: localPeerId,
-                    name: localPeerName,
-                    peerId: localPeerId,
-                    accountId: account.id,
-                }),
-            }).catch(err => {
-                console.error('Failed to save user info:', err);
-            });
-        }
-    }, [localPeerId, localPeerName, startVideo, roomId, account.id]);
+        startVideo();
+
+        fetch(`${API_URL}/api/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: localPeerId,
+                name: localPeerName,
+                peerId: localPeerId,
+                accountId: account.id,
+            }),
+        }).catch(err => {
+            console.error('Failed to save user info:', err);
+        });
+    }, [localPeerId]);
 
     // Send heartbeat to keep session alive
     useEffect(() => {

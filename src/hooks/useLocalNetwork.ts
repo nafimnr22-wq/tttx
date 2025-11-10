@@ -3,36 +3,11 @@ import { WebRTCManager, Peer, Message, FileTransfer } from '../utils/webrtc';
 import { LocalSignalingServer, SignalingMessage } from '../utils/signaling';
 
 export function useLocalNetwork(userName: string, roomId?: string) {
-    console.log('🚀 useLocalNetwork called with userName:', userName || '(empty)', 'roomId:', roomId);
-
     const webrtcRef = useRef<WebRTCManager | null>(null);
     const signalingRef = useRef<LocalSignalingServer | null>(null);
     const initializingRef = useRef(false);
-    const currentRoomRef = useRef<string | undefined>(roomId);
-
-    if ((!webrtcRef.current || currentRoomRef.current !== roomId) && userName) {
-        if (webrtcRef.current && currentRoomRef.current !== roomId) {
-            console.log('Room changed, cleaning up old connection');
-            webrtcRef.current.cleanup();
-            signalingRef.current?.close();
-        }
-        webrtcRef.current = new WebRTCManager(userName || 'Guest');
-        console.log('Created WebRTCManager with peer ID:', webrtcRef.current.getLocalPeerId());
-        currentRoomRef.current = roomId;
-    }
-
-    if ((!signalingRef.current || currentRoomRef.current !== roomId) && userName && webrtcRef.current) {
-        if (signalingRef.current && currentRoomRef.current !== roomId) {
-            signalingRef.current.close();
-        }
-        signalingRef.current = new LocalSignalingServer(
-            webrtcRef.current.getLocalPeerId(),
-            userName || 'Guest',
-            roomId
-        );
-        console.log('Created LocalSignalingServer for room:', roomId || 'global');
-        currentRoomRef.current = roomId;
-    }
+    const [localPeerId, setLocalPeerId] = useState('');
+    const [localPeerName, setLocalPeerName] = useState('');
 
     const [peers, setPeers] = useState<Peer[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -42,51 +17,54 @@ export function useLocalNetwork(userName: string, roomId?: string) {
     const [isVideoEnabled, setIsVideoEnabled] = useState(true);
 
     useEffect(() => {
-        if (!userName || !webrtcRef.current || !signalingRef.current) {
-            console.log('⏳ Waiting for username...');
+        if (!userName) {
             return;
         }
 
         if (initializingRef.current) {
-            console.log('⏳ Already initializing...');
             return;
         }
 
         initializingRef.current = true;
         let isActive = true;
-        const webrtc = webrtcRef.current;
-        const signaling = signalingRef.current;
+
+        const webrtc = new WebRTCManager(userName);
+        webrtcRef.current = webrtc;
+        setLocalPeerId(webrtc.getLocalPeerId());
+        setLocalPeerName(webrtc.getLocalPeerName());
+
+        const signaling = new LocalSignalingServer(
+            webrtc.getLocalPeerId(),
+            userName,
+            roomId
+        );
+        signalingRef.current = signaling;
+
         const peersRef = new Map<string, Peer>();
         const pendingConnections = new Set<string>();
 
         webrtc.setOnPeerUpdate((updatedPeers) => {
             if (!isActive) return;
-            console.log('👥 Peer update:', updatedPeers.length, 'peers');
             setPeers([...updatedPeers]);
             updatedPeers.forEach(p => peersRef.set(p.id, p));
         });
 
         webrtc.setOnMessage((message) => {
             if (!isActive) return;
-            console.log('💬 New message from:', message.peerName);
             setMessages(prev => [...prev, message]);
         });
 
         webrtc.setOnFileTransfer((transfer) => {
             if (!isActive) return;
-            console.log('📁 New file transfer:', transfer.name);
             setFileTransfers(prev => [...prev, transfer]);
         });
 
         signaling.setOnSignal(async (message: SignalingMessage) => {
             if (!isActive) return;
 
-            console.log('📨 Received signal:', message.type, 'from:', message.fromName, 'peerId:', message.from);
-
             if (message.type === 'peer-discovery') {
                 const existingPeer = peersRef.get(message.from);
 
-                // Don't connect to ourselves
                 if (message.from === webrtc.getLocalPeerId()) {
                     return;
                 }
@@ -96,7 +74,7 @@ export function useLocalNetwork(userName: string, roomId?: string) {
                     webrtc.getLocalPeerId() > message.from;
 
                 if (shouldInitiate) {
-                    console.log('🤝 New peer discovered, initiating connection:', message.fromName);
+                    console.log('🤝 Initiating connection to:', message.fromName);
                     pendingConnections.add(message.from);
 
                     try {
@@ -126,8 +104,6 @@ export function useLocalNetwork(userName: string, roomId?: string) {
                         console.error('❌ Error creating offer:', error);
                         pendingConnections.delete(message.from);
                     }
-                } else if (!existingPeer) {
-                    console.log('⏳ Waiting for offer from:', message.fromName);
                 }
             } else if (message.type === 'offer') {
                 console.log('📥 Received offer from:', message.fromName);
@@ -136,7 +112,6 @@ export function useLocalNetwork(userName: string, roomId?: string) {
                     let peerConnection = peersRef.get(message.from)?.connection;
 
                     if (!peerConnection) {
-                        console.log('🆕 Creating new peer connection for:', message.fromName);
                         peerConnection = await webrtc.createPeerConnection(message.from, message.fromName);
 
                         peerConnection.onicecandidate = (event) => {
@@ -178,9 +153,7 @@ export function useLocalNetwork(userName: string, roomId?: string) {
                                 new RTCSessionDescription(message.data as RTCSessionDescriptionInit)
                             );
                             pendingConnections.delete(message.from);
-                            console.log('✅ Connection established with:', message.fromName);
-                        } else {
-                            console.warn('⚠️ Invalid state for answer:', peer.connection.signalingState);
+                            console.log('✅ Connected to:', message.fromName);
                         }
                     } catch (error) {
                         console.error('❌ Error setting remote description:', error);
@@ -193,7 +166,6 @@ export function useLocalNetwork(userName: string, roomId?: string) {
                         await peer.connection.addIceCandidate(
                             new RTCIceCandidate(message.data as RTCIceCandidateInit)
                         );
-                        console.log('✅ Added ICE candidate from:', message.fromName);
                     } catch (error) {
                         console.error('❌ Error adding ICE candidate:', error);
                     }
@@ -204,26 +176,22 @@ export function useLocalNetwork(userName: string, roomId?: string) {
         const discoveryInterval = setInterval(() => {
             if (isActive) {
                 signaling.broadcast('peer-discovery');
-                console.log('Broadcasting discovery for room:', roomId || 'global');
             }
-        }, 1500);
+        }, 2000);
 
-        if (isActive) {
-            signaling.broadcast('peer-discovery');
-            console.log('Initial discovery broadcast for room:', roomId || 'global');
-            setTimeout(() => {
-                if (isActive) {
-                    signaling.broadcast('peer-discovery');
-                    console.log('Second discovery broadcast for room:', roomId || 'global');
-                }
-            }, 500);
-        }
+        signaling.broadcast('peer-discovery');
+        setTimeout(() => {
+            if (isActive) {
+                signaling.broadcast('peer-discovery');
+            }
+        }, 500);
 
         return () => {
-            console.log('🧹 Cleaning up...');
             isActive = false;
             initializingRef.current = false;
             clearInterval(discoveryInterval);
+            webrtc.cleanup();
+            signaling.close();
         };
     }, [userName, roomId]);
 
@@ -233,30 +201,23 @@ export function useLocalNetwork(userName: string, roomId?: string) {
         try {
             const stream = await webrtcRef.current.initLocalStream(true, true);
             setLocalStream(stream);
-            console.log('🎥 Video started');
         } catch (error) {
-            console.error('❌ Failed to start video:', error);
-
+            console.error('Failed to start video:', error);
             try {
-                console.log('🎤 Trying audio-only...');
                 const stream = await webrtcRef.current.initLocalStream(false, true);
                 setLocalStream(stream);
                 setIsVideoEnabled(false);
-                console.log('✅ Audio-only mode active');
             } catch (audioError) {
-                console.error('❌ Failed to start audio:', audioError);
-                console.log('⚠️ Continuing without media devices');
+                console.error('Failed to start audio:', audioError);
             }
         }
     }, []);
 
     const sendMessage = useCallback((content: string) => {
-        console.log('💬 Sending message:', content);
         webrtcRef.current?.sendMessage(content);
     }, []);
 
     const sendFile = useCallback((file: File) => {
-        console.log('📁 Sending file:', file.name);
         webrtcRef.current?.sendFile(file);
     }, []);
 
@@ -265,7 +226,6 @@ export function useLocalNetwork(userName: string, roomId?: string) {
         const newState = !isAudioEnabled;
         webrtcRef.current.toggleAudio(newState);
         setIsAudioEnabled(newState);
-        console.log('🎤 Audio:', newState ? 'ON' : 'OFF');
     }, [isAudioEnabled]);
 
     const toggleVideo = useCallback(() => {
@@ -273,11 +233,9 @@ export function useLocalNetwork(userName: string, roomId?: string) {
         const newState = !isVideoEnabled;
         webrtcRef.current.toggleVideo(newState);
         setIsVideoEnabled(newState);
-        console.log('🎥 Video:', newState ? 'ON' : 'OFF');
     }, [isVideoEnabled]);
 
     const cleanup = useCallback(() => {
-        console.log('🧹 Cleanup called');
         webrtcRef.current?.cleanup();
         signalingRef.current?.close();
 
@@ -288,16 +246,10 @@ export function useLocalNetwork(userName: string, roomId?: string) {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'ended' }),
-            }).catch(err => console.error('❌ Failed to end call:', err));
+            }).catch(err => console.error('Failed to end call:', err));
             localStorage.removeItem('activeCallId');
         }
     }, []);
-
-    useEffect(() => {
-        return () => {
-            cleanup();
-        };
-    }, [cleanup]);
 
     return {
         peers,
@@ -312,7 +264,7 @@ export function useLocalNetwork(userName: string, roomId?: string) {
         toggleAudio,
         toggleVideo,
         cleanup,
-        localPeerId: webrtcRef.current?.getLocalPeerId() || '',
-        localPeerName: webrtcRef.current?.getLocalPeerName() || '',
+        localPeerId,
+        localPeerName,
     };
 }
